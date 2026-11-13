@@ -1,0 +1,52 @@
+#!/bin/bash
+# lidless — keeps the Mac awake (lid closed included) for a set time, then restores sleep.
+#   lidless          2 hours
+#   lidless 4h       4 hours
+#   lidless 90m      90 minutes
+#   lidless stop     ends the running session and restores sleep
+
+STATE=/var/run/lidless   # "PID END_EPOCH" during a session; read by the menu bar button
+arg="${1:-2h}"
+
+if [ "$arg" != stop ]; then
+  if [[ ! "$arg" =~ ^([1-9][0-9]*)(h|m)$ ]]; then
+    echo "Usage: lidless [duration|stop]   e.g. lidless 4h, lidless 90m" >&2
+    exit 1
+  fi
+  n="${BASH_REMATCH[1]}"
+  [ "${BASH_REMATCH[2]}" = h ] && secs=$((n * 3600)) || secs=$((n * 60))
+fi
+
+# The whole script runs as root: otherwise sudo would ask for the password again
+# when restoring sleep, hours later, with nobody there to type it.
+[ "$EUID" -eq 0 ] || exec sudo "$0" "$@"
+
+# End a session that is already running (its own trap restores sleep).
+if [ -f "$STATE" ]; then
+  kill "$(cut -d' ' -f1 "$STATE")" 2>/dev/null && sleep 1
+  rm -f "$STATE"
+fi
+
+if [ "$arg" = stop ]; then
+  pmset -a disablesleep 0
+  echo "Sleep restored."
+  exit 0
+fi
+
+restore() {
+  kill "$timer" 2>/dev/null
+  rm -f "$STATE"
+  pmset -a disablesleep 0
+  echo "Sleep restored."
+}
+trap restore EXIT
+trap 'exit 130' INT TERM HUP   # Ctrl-C, closing the Terminal or "lidless stop" -> goes through restore
+
+pmset -a disablesleep 1
+echo "$$ $(($(date +%s) + secs))" > "$STATE"
+echo "Mac awake until $(date -v+"${secs}"S '+%H:%M') (lid closed included). Ctrl-C to stop."
+# Background sleep + wait: bash only handles a signal between two commands,
+# so a foreground sleep would block "lidless stop" until the timer ran out.
+sleep "$secs" &
+timer=$!
+wait "$timer"
