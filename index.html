@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>lidless: the eye that never closes</title>
+<meta name="description" content="Keeps your Mac awake for a set time, even with the lid shut, then puts sleep back. One command, one menu bar button.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>👁</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --blue: #2b2bf0;
+    --ink: #130f40;
+    --cream: #fff7e8;
+    --yolk: #ffd43b;
+    --pink: #ff86c2;
+    --panel: var(--ink);
+    --shadow: var(--ink);
+  }
+  .closed { --panel: var(--blue); --shadow: var(--pink); }
+
+  * { box-sizing: border-box; }
+  html { background: var(--blue); }
+  body {
+    margin: 0;
+    color: var(--cream);
+    font: 400 1.125rem/1.55 "Bricolage Grotesque", system-ui, sans-serif;
+  }
+
+  /* The laptop lid: an ink panel that drops behind the content. */
+  .lid {
+    position: fixed; inset: 0; z-index: 0;
+    background: var(--ink);
+    transform: translateY(-101%);
+    transition: transform .55s cubic-bezier(.7, 0, .3, 1);
+  }
+  .closed .lid { transform: none; }
+  .page { position: relative; z-index: 1; }
+
+  a { color: var(--yolk); text-underline-offset: .2em; }
+  :focus-visible { outline: 3px solid var(--yolk); outline-offset: 3px; }
+
+  .top {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 1.25rem clamp(1rem, 4vw, 3rem);
+  }
+  .wordmark { font: 1.75rem/1 "Bagel Fat One", sans-serif; color: var(--cream); text-decoration: none; }
+
+  .hero { text-align: center; padding: 1rem clamp(1rem, 4vw, 3rem) 4rem; }
+  .eye { width: min(34rem, 88vw); height: auto; display: block; margin: 0 auto; transition: filter .55s; }
+  .closed .eye { filter: drop-shadow(0 0 2.5rem rgb(255 212 59 / .55)); }
+  .eyelid { animation: almost-blink 7s 2s infinite; }
+  @keyframes almost-blink {
+    0%, 86%, 100% { transform: none; }
+    90% { transform: translateY(105px); }
+    92% { transform: translateY(88px); }
+    95% { transform: translateY(118px); }
+    97% { transform: translateY(20px); }
+  }
+  h1 {
+    font: clamp(2.75rem, 9.5vw, 7rem)/.95 "Bagel Fat One", sans-serif;
+    margin: 1.5rem auto 1.25rem; max-width: 12ch; text-wrap: balance;
+  }
+  .lede { max-width: 34rem; margin: 0 auto 2rem; font-size: 1.3rem; line-height: 1.4; text-wrap: balance; }
+
+  button {
+    font: 600 1.05rem/1 "Bricolage Grotesque", system-ui, sans-serif;
+    color: var(--ink); background: var(--yolk);
+    border: 3px solid var(--ink); border-radius: 999px;
+    padding: .85rem 1.4rem; cursor: pointer;
+    box-shadow: 4px 4px 0 var(--shadow);
+    transition: transform .08s, box-shadow .08s;
+  }
+  button:active { transform: translate(4px, 4px); box-shadow: 0 0 0 var(--shadow); }
+
+  main { max-width: 44rem; margin: 0 auto; padding: 0 clamp(1rem, 4vw, 2rem) 4rem; }
+  h2 { font: clamp(1.9rem, 5vw, 2.75rem)/1.05 "Bagel Fat One", sans-serif; margin: 4.5rem 0 1rem; }
+  p, li { max-width: 62ch; }
+  li + li { margin-top: .4rem; }
+
+  code { font: .92em/1.5 ui-monospace, "SF Mono", Menlo, monospace; }
+  p code, li code, dt code { background: var(--panel); padding: .12em .4em; border-radius: .35em; transition: background .55s; }
+  .term {
+    position: relative; background: var(--panel); border-radius: 1rem;
+    padding: 1.25rem 1.4rem; margin: 1.25rem 0; overflow-x: auto;
+    transition: background .55s;
+  }
+  .term pre { margin: 0; }
+  .term button { position: absolute; top: .8rem; right: .8rem; padding: .5rem .9rem; font-size: .9rem; }
+
+  /* Fake menu bar: a working demo of the real button. */
+  .bar {
+    background: var(--cream); color: var(--ink);
+    border: 3px solid var(--ink); border-radius: 1rem;
+    box-shadow: 6px 6px 0 var(--shadow);
+    max-width: 22rem; margin: 1.5rem 0; overflow: hidden;
+    transition: box-shadow .55s;
+  }
+  .bar-top {
+    display: flex; justify-content: flex-end; align-items: center; gap: .5rem;
+    padding: .5rem .9rem; border-bottom: 3px solid var(--ink);
+    font-weight: 600; font-variant-numeric: tabular-nums;
+  }
+  .bar-top svg { width: 1.4rem; height: 1.4rem; }
+  .bar ul { list-style: none; margin: 0; padding: .4rem; }
+  .bar li { margin: 0; }
+  .bar .hint { padding: .35rem .7rem; opacity: .65; font-size: .95rem; }
+  .bar li button {
+    display: block; width: 100%; text-align: left;
+    background: none; border: 0; border-radius: .5rem; box-shadow: none;
+    padding: .5rem .7rem; font-weight: 400; font-size: 1.05rem;
+  }
+  .bar li button:hover, .bar li button:focus-visible { background: var(--blue); color: var(--cream); }
+  .bar li button:active { transform: none; }
+  .when-closed, .closed .when-open { display: none; }
+  .closed .when-closed { display: revert; }
+
+  dl { display: grid; grid-template-columns: max-content 1fr; gap: .7rem 1.5rem; margin: 1.25rem 0; }
+  dt, dd { margin: 0; }
+
+  .heat {
+    background: var(--pink); color: var(--ink);
+    border: 3px solid var(--ink); border-radius: 1rem;
+    padding: 1.1rem 1.3rem; margin: 1.5rem 0; font-weight: 600;
+    box-shadow: 6px 6px 0 var(--shadow); transition: box-shadow .55s;
+  }
+
+  footer { padding: 2rem clamp(1rem, 4vw, 2rem) 3rem; max-width: 44rem; margin: 0 auto; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .eyelid { animation: none; }
+    .lid, .eye, .term, .bar, .heat, p code, li code, dt code { transition: none; }
+  }
+</style>
+</head>
+<body>
+<div class="lid" aria-hidden="true"></div>
+<div class="page">
+
+<header class="top">
+  <a class="wordmark" href="#">lidless</a>
+  <a href="https://github.com/zenud/lidless">Source on GitHub</a>
+</header>
+
+<section class="hero">
+  <svg class="eye" viewBox="0 0 400 240" role="img" aria-label="A wide-open eye that follows your pointer and never quite manages to blink">
+    <defs><clipPath id="almond"><path d="M10 120Q200-40 390 120Q200 280 10 120Z"/></clipPath></defs>
+    <path d="M10 120Q200-40 390 120Q200 280 10 120Z" fill="#fff7e8"/>
+    <g clip-path="url(#almond)">
+      <g fill="none" stroke="#ff86c2" stroke-width="4" stroke-linecap="round">
+        <path d="M24 122q22-14 40-4t34-6"/><path d="M40 140q18 6 30 0"/>
+        <path d="M376 118q-20 12-38 2t-32 8"/><path d="M362 100q-16-4-26 4"/>
+      </g>
+      <g id="look">
+        <circle cx="200" cy="120" r="64" fill="#ffd43b" stroke="#130f40" stroke-width="8"/>
+        <circle cx="200" cy="120" r="29" fill="#130f40"/>
+        <circle cx="216" cy="104" r="9" fill="#fff7e8"/>
+      </g>
+      <rect class="eyelid" x="-10" y="-212" width="420" height="200" fill="#ff86c2" stroke="#130f40" stroke-width="8"/>
+    </g>
+    <path d="M10 120Q200-40 390 120Q200 280 10 120Z" fill="none" stroke="#130f40" stroke-width="10" stroke-linejoin="round"/>
+  </svg>
+
+  <h1 id="headline">The eye that never closes.</h1>
+  <p class="lede">lidless keeps your Mac awake for as long as you say, even with the lid shut, then puts sleep back the way it was.</p>
+  <button type="button" class="when-open" data-start="120">Close the lid</button>
+  <button type="button" class="when-closed" data-stop>Open the lid</button>
+</section>
+
+<main>
+  <h2>Install</h2>
+  <p>Needs macOS 12 or later and, for the menu bar button, <a href="https://brew.sh">Homebrew</a>.</p>
+  <div class="term">
+    <button type="button" id="copy">Copy</button>
+<pre><code id="cmd">git clone https://github.com/zenud/lidless.git
+cd lidless
+./install.sh</code></pre>
+  </div>
+  <p>The installer never asks for a password. It copies the command to <code>~/.local/bin</code>, installs <a href="https://swiftbar.app">SwiftBar</a> if it is missing, and drops the button into it. Add <code>--no-button</code> for the command alone.</p>
+
+  <h2>Try the button</h2>
+  <p>A moon sits in your menu bar. Pick a duration and it turns into an eye with the end time next to it. This one works on the page, minus the password.</p>
+  <div class="bar">
+    <div class="bar-top">
+      <svg class="when-open" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z" fill="#130f40"/></svg>
+      <svg class="when-closed" viewBox="0 0 24 24" aria-hidden="true"><path d="M1.5 12Q12 2 22.5 12Q12 22 1.5 12Z" fill="none" stroke="#130f40" stroke-width="2.2" stroke-linejoin="round"/><circle cx="12" cy="12" r="3.6" fill="#130f40"/></svg>
+      <span class="when-closed" data-until></span>
+    </div>
+    <ul>
+      <li class="hint when-open">Keep the Mac awake for…</li>
+      <li class="hint when-closed">Awake until <span data-until></span></li>
+      <li class="when-closed"><button type="button" data-stop>Stop</button></li>
+      <li class="hint when-closed">Restart for…</li>
+      <li><button type="button" data-start="30">30m</button></li>
+      <li><button type="button" data-start="60">1h</button></li>
+      <li><button type="button" data-start="120">2h</button></li>
+      <li><button type="button" data-start="240">4h</button></li>
+      <li><button type="button" data-start="480">8h</button></li>
+    </ul>
+  </div>
+  <p>To get the real one back after a restart, click it, then SwiftBar, and turn on Launch at Login.</p>
+
+  <h2>Or type it</h2>
+  <dl>
+    <dt><code>lidless</code></dt><dd>Stays awake for 2 hours.</dd>
+    <dt><code>lidless 4h</code></dt><dd>4 hours.</dd>
+    <dt><code>lidless 90m</code></dt><dd>90 minutes.</dd>
+    <dt><code>lidless stop</code></dt><dd>Ends the session and restores sleep.</dd>
+  </dl>
+  <p>It asks for your password once, prints the end time, then holds the Terminal window. Ctrl-C, or closing the window, ends the session and restores sleep.</p>
+
+  <h2>What it does to your Mac</h2>
+  <p>It runs <code>pmset -a disablesleep 1</code>, the macOS setting that forbids sleep altogether, waits, then runs <code>pmset -a disablesleep 0</code>. That setting belongs to administrators, hence the password. Nothing else is touched.</p>
+
+  <h2>Before you close the lid</h2>
+  <p class="heat">With the lid closed, a Mac runs hot and drains its battery. Plug it in and leave it on a clear surface, never in a bag.</p>
+  <ul>
+    <li>If the Mac shuts down or crashes mid-session, sleep can stay disabled. Run <code>lidless stop</code> to restore it.</li>
+    <li>The display can still turn off. Only the system stays awake.</li>
+    <li>Nothing watches the battery or the temperature for you.</li>
+    <li>Every start and every stop asks for the password.</li>
+  </ul>
+
+  <h2>Uninstall</h2>
+  <div class="term">
+<pre><code>lidless stop
+rm ~/.local/bin/lidless
+rm "$HOME/Library/Application Support/SwiftBar/Plugins/lidless.30s.sh"</code></pre>
+  </div>
+</main>
+
+<footer>
+  <p>MIT licensed. <a href="https://github.com/zenud/lidless">Read the source</a>, it is about a hundred lines of shell.</p>
+</footer>
+</div>
+
+<script>
+  const root = document.documentElement;
+  const headline = document.getElementById('headline');
+
+  // Fake session: clicking a duration closes the lid, exactly like the real button starts one.
+  document.addEventListener('click', e => {
+    const start = e.target.closest('[data-start]'), stop = e.target.closest('[data-stop]');
+    if (start) {
+      const end = new Date(Date.now() + start.dataset.start * 60000);
+      const hhmm = end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+      document.querySelectorAll('[data-until]').forEach(el => el.textContent = hhmm);
+      root.classList.add('closed');
+      headline.textContent = 'Lid closed. Still awake.';
+    } else if (stop) {
+      root.classList.remove('closed');
+      headline.textContent = 'The eye that never closes.';
+    }
+  });
+
+  // The iris follows the pointer.
+  const eye = document.querySelector('.eye'), look = document.getElementById('look');
+  addEventListener('pointermove', e => {
+    const r = eye.getBoundingClientRect();
+    const dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
+    const k = Math.min(1, Math.hypot(dx, dy) / 500), a = Math.atan2(dy, dx);
+    look.setAttribute('transform', `translate(${(Math.cos(a) * 70 * k).toFixed(1)} ${(Math.sin(a) * 26 * k).toFixed(1)})`);
+  });
+
+  const copy = document.getElementById('copy');
+  copy.addEventListener('click', async () => {
+    await navigator.clipboard.writeText(document.getElementById('cmd').textContent);
+    copy.textContent = 'Copied';
+    setTimeout(() => copy.textContent = 'Copy', 1500);
+  });
+</script>
+</body>
+</html>
