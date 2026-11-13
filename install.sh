@@ -26,7 +26,9 @@ fi
 
 plugins="$(defaults read com.ameba.SwiftBar PluginDirectory 2>/dev/null || true)"
 if [ -z "$plugins" ]; then
-  plugins="$HOME/Library/Application Support/SwiftBar/Plugins"
+  # Not ~/Library/Application Support/SwiftBar: SwiftBar keeps its own data there,
+  # in folders named after each plugin, and then mistakes them for broken plugins.
+  plugins="$HOME/.swiftbar"
   defaults write com.ameba.SwiftBar PluginDirectory "$plugins"
 fi
 mkdir -p "$plugins"

@@ -27,7 +27,8 @@ The installer does not ask for a password. It does three things:
 1. Copies the command to `~/.local/bin/lidless`.
 2. Installs [SwiftBar](https://swiftbar.app) with Homebrew if it is not there
    yet. SwiftBar is the app that displays the button.
-3. Copies the button into SwiftBar's plugin folder and starts SwiftBar.
+3. Copies the button into SwiftBar's plugin folder (`~/.swiftbar` unless you
+   already picked another one) and starts SwiftBar.
 
 For the command alone, with no button and no SwiftBar:
 
@@ -88,7 +89,7 @@ end time. The button reads it to show the eye and the time.
 ```bash
 lidless stop
 rm ~/.local/bin/lidless
-rm "$HOME/Library/Application Support/SwiftBar/Plugins/lidless.30s.sh"
+rm ~/.swiftbar/lidless.30s.sh    # or wherever your SwiftBar plugin folder is
 brew uninstall --cask swiftbar   # only if you do not use SwiftBar for anything else
 ```
 
