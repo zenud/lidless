@@ -11,21 +11,23 @@
 <link href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600&display=swap" rel="stylesheet">
 <style>
   :root {
-    --blue: #2b2bf0;
+    /* Three colours only: ink, cream and one yellow. */
     --ink: #130f40;
     --cream: #fff7e8;
     --yolk: #ffd43b;
-    --pink: #ff86c2;
-    --panel: var(--ink);
+    --fg: var(--ink);
+    --bg: var(--cream);
     --shadow: var(--ink);
   }
-  .closed { --panel: var(--blue); --shadow: var(--pink); }
+  /* Lid closed: day turns to night, the two neutrals swap. */
+  .closed { --fg: var(--cream); --bg: var(--ink); --shadow: var(--yolk); }
 
   * { box-sizing: border-box; }
-  html { background: var(--blue); }
+  html { background: var(--cream); }
   body {
     margin: 0;
-    color: var(--cream);
+    color: var(--fg);
+    transition: color .55s;
     font: 400 1.125rem/1.55 "Bricolage Grotesque", system-ui, sans-serif;
   }
 
@@ -39,14 +41,14 @@
   .closed .lid { transform: none; }
   .page { position: relative; z-index: 1; }
 
-  a { color: var(--yolk); text-underline-offset: .2em; }
-  :focus-visible { outline: 3px solid var(--yolk); outline-offset: 3px; }
+  a { color: inherit; text-decoration: underline var(--yolk) 3px; text-underline-offset: .22em; }
+  :focus-visible { outline: 3px solid currentColor; outline-offset: 3px; }
 
   .top {
     display: flex; justify-content: space-between; align-items: baseline;
     padding: 1.25rem clamp(1rem, 4vw, 3rem);
   }
-  .wordmark { font: 1.75rem/1 "Bagel Fat One", sans-serif; color: var(--cream); text-decoration: none; }
+  .wordmark { font: 1.75rem/1 "Bagel Fat One", sans-serif; text-decoration: none; }
 
   .hero { text-align: center; padding: 1rem clamp(1rem, 4vw, 3rem) 4rem; }
   .eye { width: min(34rem, 88vw); height: auto; display: block; margin: 0 auto; transition: filter .55s; }
@@ -81,18 +83,18 @@
   li + li { margin-top: .4rem; }
 
   code { font: .92em/1.5 ui-monospace, "SF Mono", Menlo, monospace; }
-  p code, li code, dt code { background: var(--panel); padding: .12em .4em; border-radius: .35em; transition: background .55s; }
+  p code, li code, dt code { background: color-mix(in srgb, currentColor 13%, transparent); padding: .12em .4em; border-radius: .35em; transition: background .55s; }
   .term {
-    position: relative; background: var(--panel); border-radius: 1rem;
+    position: relative; background: var(--fg); color: var(--bg); border-radius: 1rem;
     padding: 1.25rem 1.4rem; margin: 1.25rem 0; overflow-x: auto;
-    transition: background .55s;
+    transition: background .55s, color .55s;
   }
   .term pre { margin: 0; }
   .term button { position: absolute; top: .8rem; right: .8rem; padding: .5rem .9rem; font-size: .9rem; }
 
   /* Fake menu bar: a working demo of the real button. */
   .bar {
-    background: var(--cream); color: var(--ink);
+    background: #fff; color: var(--ink);
     border: 3px solid var(--ink); border-radius: 1rem;
     box-shadow: 6px 6px 0 var(--shadow);
     max-width: 22rem; margin: 1.5rem 0; overflow: hidden;
@@ -112,7 +114,7 @@
     background: none; border: 0; border-radius: .5rem; box-shadow: none;
     padding: .5rem .7rem; font-weight: 400; font-size: 1.05rem;
   }
-  .bar li button:hover, .bar li button:focus-visible { background: var(--blue); color: var(--cream); }
+  .bar li button:hover, .bar li button:focus-visible { background: var(--ink); color: var(--cream); }
   .bar li button:active { transform: none; }
   .when-closed, .closed .when-open { display: none; }
   .closed .when-closed { display: revert; }
@@ -121,7 +123,7 @@
   dt, dd { margin: 0; }
 
   .heat {
-    background: var(--pink); color: var(--ink);
+    background: var(--yolk); color: var(--ink);
     border: 3px solid var(--ink); border-radius: 1rem;
     padding: 1.1rem 1.3rem; margin: 1.5rem 0; font-weight: 600;
     box-shadow: 6px 6px 0 var(--shadow); transition: box-shadow .55s;
@@ -131,7 +133,7 @@
 
   @media (prefers-reduced-motion: reduce) {
     .eyelid { animation: none; }
-    .lid, .eye, .term, .bar, .heat, p code, li code, dt code { transition: none; }
+    body, .lid, .eye, .term, .bar, .heat { transition: none; }
   }
 </style>
 </head>
@@ -147,18 +149,18 @@
 <section class="hero">
   <svg class="eye" viewBox="0 0 400 240" role="img" aria-label="A wide-open eye that follows your pointer and never quite manages to blink">
     <defs><clipPath id="almond"><path d="M10 120Q200-40 390 120Q200 280 10 120Z"/></clipPath></defs>
-    <path d="M10 120Q200-40 390 120Q200 280 10 120Z" fill="#fff7e8"/>
+    <path d="M10 120Q200-40 390 120Q200 280 10 120Z" fill="#fff"/>
     <g clip-path="url(#almond)">
-      <g fill="none" stroke="#ff86c2" stroke-width="4" stroke-linecap="round">
+      <g fill="none" stroke="#130f40" stroke-opacity=".3" stroke-width="3" stroke-linecap="round">
         <path d="M24 122q22-14 40-4t34-6"/><path d="M40 140q18 6 30 0"/>
         <path d="M376 118q-20 12-38 2t-32 8"/><path d="M362 100q-16-4-26 4"/>
       </g>
       <g id="look">
         <circle cx="200" cy="120" r="64" fill="#ffd43b" stroke="#130f40" stroke-width="8"/>
         <circle cx="200" cy="120" r="29" fill="#130f40"/>
-        <circle cx="216" cy="104" r="9" fill="#fff7e8"/>
+        <circle cx="216" cy="104" r="9" fill="#fff"/>
       </g>
-      <rect class="eyelid" x="-10" y="-212" width="420" height="200" fill="#ff86c2" stroke="#130f40" stroke-width="8"/>
+      <rect class="eyelid" x="-10" y="-212" width="420" height="200" fill="#130f40"/>
     </g>
     <path d="M10 120Q200-40 390 120Q200 280 10 120Z" fill="none" stroke="#130f40" stroke-width="10" stroke-linejoin="round"/>
   </svg>
