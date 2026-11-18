@@ -180,10 +180,10 @@
 cd lidless
 ./install.sh</code></pre>
   </div>
-  <p>The installer never asks for a password. It copies the command to <code>~/.local/bin</code>, installs <a href="https://swiftbar.app">SwiftBar</a> if it is missing, and drops the button into it. Add <code>--no-button</code> for the command alone.</p>
+  <p>The installer asks for your password once, to set up the service that does the work. After that, nothing does. It also copies the command to <code>~/.local/bin</code>, installs <a href="https://swiftbar.app">SwiftBar</a> if it is missing, and drops the button into it. Add <code>--no-button</code> to skip the button.</p>
 
   <h2>Try the button</h2>
-  <p>A moon sits in your menu bar. Pick a duration and it turns into an eye with the end time next to it. This one works on the page, minus the password.</p>
+  <p>A moon sits in your menu bar. Pick a duration and it turns into an eye with the end time next to it. This one works on the page.</p>
   <div class="bar">
     <div class="bar-top">
       <svg class="when-open" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z" fill="#130f40"/></svg>
@@ -202,7 +202,7 @@ cd lidless
       <li><button type="button" data-start="480">8h</button></li>
     </ul>
   </div>
-  <p>To get the real one back after a restart, click it, then SwiftBar, and turn on Launch at Login.</p>
+  <p>The real one comes back by itself after a restart.</p>
 
   <h2>Or type it</h2>
   <dl>
@@ -211,23 +211,23 @@ cd lidless
     <dt><code>lidless 90m</code></dt><dd>90 minutes.</dd>
     <dt><code>lidless stop</code></dt><dd>Ends the session and restores sleep.</dd>
   </dl>
-  <p>It asks for your password once, prints the end time, then holds the Terminal window. Ctrl-C, or closing the window, ends the session and restores sleep.</p>
+  <p>It prints the end time and returns straight away: close the Terminal window, the session carries on. <code>lidless stop</code> ends it.</p>
 
   <h2>What it does to your Mac</h2>
-  <p>It runs <code>pmset -a disablesleep 1</code>, the macOS setting that forbids sleep altogether, waits, then runs <code>pmset -a disablesleep 0</code>. That setting belongs to administrators, hence the password. Nothing else is touched.</p>
+  <p>The command and the button only write an end time into a file. A service that macOS starts by itself runs <code>pmset -a disablesleep 1</code>, the macOS setting that forbids sleep altogether, waits, then runs <code>pmset -a disablesleep 0</code>. That setting belongs to administrators, so the service runs as one. Nothing else is touched.</p>
 
   <h2>Before you close the lid</h2>
   <p class="heat">With the lid closed, a Mac runs hot and drains its battery. Plug it in and leave it on a clear surface, never in a bag.</p>
   <ul>
-    <li>If the Mac shuts down or crashes mid-session, sleep can stay disabled. Run <code>lidless stop</code> to restore it.</li>
     <li>The display can still turn off. Only the system stays awake.</li>
     <li>Nothing watches the battery or the temperature for you.</li>
-    <li>Every start and every stop asks for the password.</li>
+    <li>Any user account on the Mac can start or stop a session, with no password.</li>
   </ul>
 
   <h2>Uninstall</h2>
   <div class="term">
-<pre><code>lidless stop
+<pre><code>sudo launchctl bootout system/io.github.zenud.lidless
+sudo rm /Library/LaunchDaemons/io.github.zenud.lidless.plist /Library/PrivilegedHelperTools/lidless /var/db/lidless
 rm ~/.local/bin/lidless
 rm ~/.swiftbar/lidless.30s.sh</code></pre>
   </div>

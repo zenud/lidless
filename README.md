@@ -22,22 +22,23 @@ cd lidless
 ./install.sh
 ```
 
-The installer does not ask for a password. It does three things:
+The installer asks for your password once, to set up the service. After
+that, nothing does. It does four things:
 
 1. Copies the command to `~/.local/bin/lidless`.
-2. Installs [SwiftBar](https://swiftbar.app) with Homebrew if it is not there
+2. Installs the service: a small background program that macOS starts by
+   itself, and the only part that runs as administrator.
+3. Installs [SwiftBar](https://swiftbar.app) with Homebrew if it is not there
    yet. SwiftBar is the app that displays the button.
-3. Copies the button into SwiftBar's plugin folder (`~/.swiftbar` unless you
-   already picked another one) and starts SwiftBar.
+4. Copies the button into SwiftBar's plugin folder (`~/.swiftbar` unless you
+   already picked another one), starts SwiftBar and adds it to your login
+   items, so the button is back after every restart.
 
-For the command alone, with no button and no SwiftBar:
+For the command and the service, with no button and no SwiftBar:
 
 ```bash
 ./install.sh --no-button
 ```
-
-To get the button back after a restart, click it, then **SwiftBar**, and turn
-on **Launch at Login**.
 
 ## Usage
 
@@ -46,9 +47,7 @@ on **Launch at Login**.
 A moon icon appears in the menu bar.
 
 1. Click it and pick a duration: 30 min, 1 h, 2 h, 4 h or 8 h.
-2. Type your password in the macOS dialog.
-3. The icon turns into an eye, with the end time next to it (this can take up
-   to 30 seconds to show).
+2. The icon turns into an eye, with the end time next to it.
 
 During a session the menu offers **Stop**, or a new duration that replaces
 the running one.
@@ -62,32 +61,33 @@ the running one.
 | `lidless 90m` | 90 minutes |
 | `lidless stop` | ends the session and restores sleep |
 
-The command asks for your password once, prints the end time, then holds the
-Terminal window until the end. Ctrl-C, or closing the window, ends the
-session and restores sleep.
+The command prints the end time and returns straight away: you can close the
+Terminal window, the session carries on. `lidless stop` ends it, within five
+seconds.
 
 ## How it works
 
-`lidless` runs `pmset -a disablesleep 1`, the macOS setting that forbids
-sleep altogether, waits for the duration you asked for, then runs
-`pmset -a disablesleep 0`. That setting is reserved for administrators, hence
-the password.
+The command and the button only write the end time into the file
+`/var/db/lidless`. macOS (launchd) starts the service every time that file
+changes. The service runs `pmset -a disablesleep 1`, the macOS setting that
+forbids sleep altogether, waits until the end time, then runs
+`pmset -a disablesleep 0`. That setting is reserved for administrators, which
+is why the service runs as one, and why the installer asks for your password.
 
-During a session, the file `/var/run/lidless` holds the process number and the
-end time. The button reads it to show the eye and the time.
+The service also starts with the Mac: after a shutdown or a crash it resumes
+the session if there is time left on it, and puts sleep back otherwise.
 
 ## Limits
 
-- **If the Mac shuts down or crashes during a session**, sleep can stay
-  disabled. Run `lidless stop` to restore it.
 - The display can still turn off: only the system stays awake.
 - There is no protection against a low battery or overheating.
-- Every start and every stop asks for the password.
+- Any user account on the Mac can start or stop a session, with no password.
 
 ## Uninstall
 
 ```bash
-lidless stop
+sudo launchctl bootout system/io.github.zenud.lidless   # stops the service and restores sleep
+sudo rm /Library/LaunchDaemons/io.github.zenud.lidless.plist /Library/PrivilegedHelperTools/lidless /var/db/lidless
 rm ~/.local/bin/lidless
 rm ~/.swiftbar/lidless.30s.sh    # or wherever your SwiftBar plugin folder is
 brew uninstall --cask swiftbar   # only if you do not use SwiftBar for anything else

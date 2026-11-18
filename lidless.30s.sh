@@ -1,17 +1,13 @@
 #!/bin/bash
 # Menu bar button for ~/.local/bin/lidless (refreshed every 30 s by SwiftBar).
 LIDLESS="$HOME/.local/bin/lidless"
-STATE=/var/run/lidless
+STATE=/var/db/lidless
 
 # Click on a menu entry: SwiftBar runs this script again with an argument.
-# macOS shows its administrator password dialog, then lidless runs in the background.
-if [ -n "$1" ]; then
-  [[ "$1" =~ ^([1-9][0-9]*(h|m)|stop)$ ]] || exit 1
-  osascript -e "do shell script \"$LIDLESS $1 >/dev/null 2>&1 &\" with administrator privileges"
-  exit
-fi
+[ -n "$1" ] && exec "$LIDLESS" "$1"
 
-if [ -f "$STATE" ] && read -r pid end < "$STATE" && ps -p "$pid" >/dev/null 2>&1; then
+read -r end < "$STATE" 2>/dev/null
+if [[ "$end" =~ ^[0-9]{1,10}$ ]] && [ "$end" -gt "$(date +%s)" ]; then
   echo "$(date -r "$end" '+%H:%M') | sfimage=eye"
   echo "---"
   echo "Awake until $(date -r "$end" '+%H:%M')"
