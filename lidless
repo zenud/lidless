@@ -4,17 +4,28 @@
 #   lidless 4h       4 hours
 #   lidless 90m      90 minutes
 #   lidless stop     ends the running session and restores sleep
+#   lidless status   tells whether a session is running and whether the Mac slept during it
+#
+# On battery, a session ends by itself under $LOW % of charge, so the Mac goes
+# to sleep instead of running flat and switching off.
 #
 # The command only writes the end time into $STATE. The service (this same
 # script, run as root by launchd with "daemon") wakes up when that file changes
 # and does the pmset work, which is why no password is needed here.
 
 STATE=/var/db/lidless   # end of the session in epoch seconds, 0 when idle; read by the menu bar button
+LOW=10                  # on battery, charge (%) under which a session ends
 arg="${1:-2h}"
+
+low_battery() {
+  local b; b=$(pmset -g batt)
+  [[ "$b" == *"'Battery Power'"* && "$b" =~ ([0-9]+)% ]] && [ "${BASH_REMATCH[1]}" -lt "$LOW" ]
+}
 
 if [ "$arg" = daemon ]; then
   trap 'pmset -a disablesleep 0; exit' TERM   # service removed, or Mac shutting down
   while read -r end < "$STATE"; [[ "$end" =~ ^[0-9]{1,10}$ ]] && [ "$end" -gt "$(date +%s)" ]; do
+    if low_battery; then echo 0 > "$STATE"; break; fi
     # Checked on every pass, not set once: anything else on the Mac can put
     # the setting back to 0 mid-session, and the button would not show it.
     pmset -g | grep -q 'SleepDisabled.*1' || pmset -a disablesleep 1
@@ -36,8 +47,28 @@ if [ "$arg" = stop ]; then
   exit 0
 fi
 
+if [ "$arg" = status ]; then
+  read -r end < "$STATE"
+  if [[ ! "$end" =~ ^[0-9]{1,10}$ ]] || [ "$end" -le "$(date +%s)" ]; then
+    echo "No session running."
+    exit 0
+  fi
+  # The state file was last written when the session started. The screens
+  # going dark is not sleep: only the system's own power log tells.
+  start=$(stat -f %m "$STATE")
+  slept=$(pmset -g log | awk -v s="$(date -r "$start" '+%Y-%m-%d %H:%M:%S')" \
+    '/Entering Sleep state/ && $1 " " $2 >= s { n++ } END { print n + 0 }')
+  [ "$slept" = 0 ] && slept="No sleep" || slept="Slept $slept time(s)"
+  echo "Awake until $(date -r "$end" '+%H:%M'). $slept since the session started at $(date -r "$start" '+%H:%M')."
+  exit 0
+fi
+
 if [[ ! "$arg" =~ ^([1-9][0-9]*)(h|m)$ ]]; then
-  echo "Usage: lidless [duration|stop]   e.g. lidless 4h, lidless 90m" >&2
+  echo "Usage: lidless [duration|stop|status]   e.g. lidless 4h, lidless 90m" >&2
+  exit 1
+fi
+if low_battery; then
+  echo "Battery under $LOW %: plug the Mac in to start a session." >&2
   exit 1
 fi
 n="${BASH_REMATCH[1]}"

@@ -60,10 +60,18 @@ the running one.
 | `lidless 4h` | 4 hours |
 | `lidless 90m` | 90 minutes |
 | `lidless stop` | ends the session and restores sleep |
+| `lidless status` | tells whether a session is running, and whether the Mac slept during it |
 
 The command prints the end time and returns straight away: you can close the
 Terminal window, the session carries on. `lidless stop` ends it, within five
 seconds.
+
+The screens still switch off after their usual delay: that is not sleep.
+`lidless status` reads the system's power log and tells which one happened.
+
+On battery, a session ends by itself under 10 % of charge, so the Mac goes to
+sleep instead of running flat and switching off. Plugged in, the charge does
+not matter.
 
 ## How it works
 
