@@ -1,5 +1,12 @@
 #!/bin/bash
 # Menu bar button for ~/.local/bin/lidless (refreshed every 30 s by SwiftBar).
+#
+# Shown by SwiftBar in the button's "About" window:
+# <xbar.title>lidless</xbar.title>
+# <xbar.author>zenud</xbar.author>
+# <xbar.author.github>zenud</xbar.author.github>
+# <xbar.desc>The eye that never closes. Keeps your Mac awake for a set time, even with the lid shut.</xbar.desc>
+# <xbar.abouturl>https://zenud.github.io/lidless/</xbar.abouturl>
 LIDLESS="$HOME/.local/bin/lidless"
 STATE=/var/db/lidless
 
