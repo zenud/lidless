@@ -15,9 +15,11 @@ STATE=/var/db/lidless
 
 read -r end < "$STATE" 2>/dev/null
 if [[ "$end" =~ ^[0-9]{1,10}$ ]] && [ "$end" -gt "$(date +%s)" ]; then
-  echo "$(date -r "$end" '+%H:%M') | sfimage=eye"
+  # 9999999999 is the end time the command writes for a session with no end.
+  if [ "$end" = 9999999999 ]; then short="∞" till="you stop it"; else short=$(date -r "$end" '+%H:%M') till=$short; fi
+  echo "$short | sfimage=eye"
   echo "---"
-  echo "Awake until $(date -r "$end" '+%H:%M')"
+  echo "Awake until $till"
   echo "Stop | bash='$0' param1=stop terminal=false refresh=true"
   echo "---"
   echo "Restart for…"
@@ -29,3 +31,4 @@ fi
 for d in 30m 1h 2h 4h 8h; do
   echo "$d | bash='$0' param1=$d terminal=false refresh=true"
 done
+echo "No end | bash='$0' param1=noend terminal=false refresh=true"

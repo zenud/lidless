@@ -3,6 +3,7 @@
 #   lidless          2 hours
 #   lidless 4h       4 hours
 #   lidless 90m      90 minutes
+#   lidless noend    until "lidless stop" (or the low battery rule below)
 #   lidless stop     ends the running session and restores sleep
 #   lidless status   tells whether a session is running and whether the Mac slept during it
 #
@@ -15,7 +16,10 @@
 
 STATE=/var/db/lidless   # end of the session in epoch seconds, 0 when idle; read by the menu bar button
 LOW=10                  # on battery, charge (%) under which a session ends
+NOEND=9999999999        # end time of a session with no end (year 2286); the button knows it too
 arg="${1:-2h}"
+
+until_text() { [ "$1" = "$NOEND" ] && echo "until you stop it" || echo "until $(date -r "$1" '+%H:%M')"; }
 
 low_battery() {
   local b; b=$(pmset -g batt)
@@ -59,20 +63,25 @@ if [ "$arg" = status ]; then
   slept=$(pmset -g log | awk -v s="$(date -r "$start" '+%Y-%m-%d %H:%M:%S')" \
     '/Entering Sleep state/ && $1 " " $2 >= s { n++ } END { print n + 0 }')
   [ "$slept" = 0 ] && slept="No sleep" || slept="Slept $slept time(s)"
-  echo "Awake until $(date -r "$end" '+%H:%M'). $slept since the session started at $(date -r "$start" '+%H:%M')."
+  echo "Awake $(until_text "$end"). $slept since the session started at $(date -r "$start" '+%H:%M')."
   exit 0
 fi
 
-if [[ ! "$arg" =~ ^([1-9][0-9]*)(h|m)$ ]]; then
-  echo "Usage: lidless [duration|stop|status]   e.g. lidless 4h, lidless 90m" >&2
+if [ "$arg" = noend ]; then
+  end=$NOEND
+elif [[ "$arg" =~ ^([1-9][0-9]*)(h|m)$ ]]; then
+  n="${BASH_REMATCH[1]}"
+  [ "${BASH_REMATCH[2]}" = h ] && secs=$((n * 3600)) || secs=$((n * 60))
+  end=$(($(date +%s) + secs))
+else
+  echo "Usage: lidless [duration|noend|stop|status]   e.g. lidless 4h, lidless 90m" >&2
   exit 1
 fi
+# After the duration is read: low_battery reuses BASH_REMATCH.
 if low_battery; then
   echo "Battery under $LOW %: plug the Mac in to start a session." >&2
   exit 1
 fi
-n="${BASH_REMATCH[1]}"
-[ "${BASH_REMATCH[2]}" = h ] && secs=$((n * 3600)) || secs=$((n * 60))
 
-echo "$(($(date +%s) + secs))" > "$STATE"
-echo "Mac awake until $(date -v+"${secs}"S '+%H:%M') (lid closed included). \"lidless stop\" to end it sooner."
+echo "$end" > "$STATE"
+echo "Mac awake $(until_text "$end") (lid closed included). \"lidless stop\" to end it."

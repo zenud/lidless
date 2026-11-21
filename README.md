@@ -46,8 +46,8 @@ For the command and the service, with no button and no SwiftBar:
 
 A moon icon appears in the menu bar.
 
-1. Click it and pick a duration: 30 min, 1 h, 2 h, 4 h or 8 h.
-2. The icon turns into an eye, with the end time next to it.
+1. Click it and pick a duration: 30 min, 1 h, 2 h, 4 h, 8 h or **No end**.
+2. The icon turns into an eye, with the end time next to it (∞ with no end).
 
 During a session the menu offers **Stop**, or a new duration that replaces
 the running one.
@@ -59,6 +59,7 @@ the running one.
 | `lidless` | stays awake for 2 hours |
 | `lidless 4h` | 4 hours |
 | `lidless 90m` | 90 minutes |
+| `lidless noend` | until you stop it, restarts included |
 | `lidless stop` | ends the session and restores sleep |
 | `lidless status` | tells whether a session is running, and whether the Mac slept during it |
 

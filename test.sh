@@ -49,4 +49,18 @@ printf "Now drawing from 'Battery Power'\n -InternalBattery-0\t9%%; discharging\
 ! "$t/lidless" 1h 2>/dev/null                 # and refuses to start a new one
 printf "Now drawing from 'AC Power'\n -InternalBattery-0\t9%%; charging\n" > "$t/batt"
 "$t/lidless" 1h >/dev/null                    # plugged in: the charge does not matter
+
+printf "Now drawing from 'Battery Power'\n -InternalBattery-0\t50%%; discharging\n" > "$t/batt"
+"$t/lidless" 90m >/dev/null                   # on battery with charge left: the duration is still 90 min
+end=$(cat "$t/state"); now=$(date +%s)
+[ $((end - now)) -ge 5399 ] && [ $((end - now)) -le 5400 ]
+
+"$t/lidless" noend | grep -q "until you stop it"
+[ "$(cat "$t/state")" = 9999999999 ]
+"$t/lidless" status | grep -q "until you stop it"
+"$t/lidless" daemon & d=$!                    # no end: the service stays until the stop
+sleep 1
+kill -0 "$d"
+"$t/lidless" stop >/dev/null
+wait "$d"
 echo "ok"
