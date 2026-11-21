@@ -6,7 +6,7 @@ cd "$(dirname "$0")"
 t=$(mktemp -d)
 trap 'rm -rf "$t"' EXIT
 sed "s|^STATE=/var/db/lidless|STATE=$t/state|" lidless > "$t/lidless"
-printf '#!/bin/sh\necho "$3" >> "%s/pmset.log"\n' "$t" > "$t/pmset"
+printf '#!/bin/sh\nl="%s/pmset.log"\n[ "$1" = -g ] && { echo " SleepDisabled $(tail -1 "$l")"; exit; }\necho "$3" >> "$l"\n' "$t" > "$t/pmset"
 chmod +x "$t/lidless" "$t/pmset"
 export PATH="$t:$PATH"
 
@@ -22,7 +22,9 @@ end=$(cat "$t/state"); now=$(date +%s)
 
 "$t/lidless" daemon & d=$!
 sleep 1
+echo 0 >> "$t/pmset.log"                      # something else re-enables sleep mid-session
+sleep 6                                       # the service puts it back on its next pass
 "$t/lidless" stop >/dev/null
 wait "$d"                                     # leaves within 5 s of the stop
-[ "$(tr '\n' ' ' < "$t/pmset.log")" = "0 1 0 " ]
+[ "$(tr '\n' ' ' < "$t/pmset.log")" = "0 1 0 1 0 " ]
 echo "ok"

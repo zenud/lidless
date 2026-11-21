@@ -14,10 +14,10 @@ arg="${1:-2h}"
 
 if [ "$arg" = daemon ]; then
   trap 'pmset -a disablesleep 0; exit' TERM   # service removed, or Mac shutting down
-  on=
   while read -r end < "$STATE"; [[ "$end" =~ ^[0-9]{1,10}$ ]] && [ "$end" -gt "$(date +%s)" ]; do
-    [ -n "$on" ] || pmset -a disablesleep 1
-    on=1
+    # Checked on every pass, not set once: anything else on the Mac can put
+    # the setting back to 0 mid-session, and the button would not show it.
+    pmset -g | grep -q 'SleepDisabled.*1' || pmset -a disablesleep 1
     sleep 5   # a stop or a new duration is picked up here
   done
   # Also reached at boot (RunAtLoad): puts sleep back after a crash mid-session.
